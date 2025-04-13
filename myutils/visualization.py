@@ -1,15 +1,32 @@
 import matplotlib.pyplot as plt
 import torch
 
+
 def plot_loss(
         history: dict,
-        idx: int,
         loss: str='BPR LOSS',
         figsize: tuple=(8,5),
         ):
     plt.figure(figsize=figsize)
-    plt.plot(history['trn'][idx], label='TRN')
-    plt.plot(history['val'][idx], label='VAL')
+    plt.plot(history['trn'], label='TRN')
+    plt.plot(history['val'], label='VAL')
+    plt.xlabel('EPOCH')
+    plt.ylabel(loss)
+    plt.title('TRN vs. VAL')
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()
+
+
+def plot_kl(
+    history: dict,
+    loss: str='KL DIV',
+    figsize: tuple=(8,5),
+    ):
+    plt.figure(figsize=figsize)
+    plt.plot(history['trn'], label='TRN')
+    plt.plot(history['val'], label='VAL')
     plt.xlabel('EPOCH')
     plt.ylabel(loss)
     plt.title('TRN vs. VAL')

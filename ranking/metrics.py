@@ -52,7 +52,6 @@ def rel_top_k_quantile(
     ):
 
     kwargs = locals().copy()
-    del kwargs["quantile"]
 
     user_interactions = origin[col_user].value_counts()
     threshold = user_interactions.quantile(quantile)
@@ -63,6 +62,8 @@ def rel_top_k_quantile(
 
     kwargs["rating_true"] = low_activity_true
     kwargs["rating_pred"] = low_activity_pred
+    del kwargs["origin"]
+    del kwargs["quantile"]
 
     return rel_top_k(**kwargs)
 
@@ -84,34 +85,39 @@ def ild_top_k(
     col_user: str=DEFAULT_USER_COL,
     col_item: str=DEFAULT_ITEM_COL,
     ):
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    
+    embedding_matrix = item_embed.weight.detach().cpu().numpy()
+
     rec_groups = rating_pred.groupby(col_user)[col_item].apply(list)
 
     ild_scores = []
 
     for user, items in rec_groups.items():
         n = len(items)
-
         if n < 2:
             ild_scores.append(0.0)
             continue
 
-        item_tensor = torch.tensor(items, dtype=torch.long).to(device)
-        vectors = item_embed(item_tensor).to(device)
+        try:
+            vecs = embedding_matrix[items]
+        except IndexError:
+            ild_scores.append(0.0)
+            continue
 
-        norm_vectors = F.normalize(vectors+ 1e-8, p=2, dim=1)
-        sim_matrix = norm_vectors @ norm_vectors.T
-        sim_matrix = torch.clamp(sim_matrix, min=-1.0, max=1.0)
+        norms = np.linalg.norm(vecs, axis=1, keepdims=True)
+        norms[norms == 0] = 1e-8  # 제로벡터 방지
+        vecs = vecs / norms
+        sim_matrix = np.dot(vecs, vecs.T)
 
         # diversity = 1 - similarity
         distance_matrix = 1 - sim_matrix
-        diversity_sum = distance_matrix.sum() - distance_matrix.diag().sum()
+        np.fill_diagonal(distance_matrix, 0.0)
+
+        diversity_sum = np.sum(distance_matrix)
         num_pairs = n * (n - 1)
-        ild = diversity_sum.item() / num_pairs
+        ild = diversity_sum / num_pairs
         ild_scores.append(ild)
 
-    return float(sum(ild_scores) / len(ild_scores)) if ild_scores else 0.0
+    return float(np.mean(ild_scores)) if ild_scores else 0.0
 
 
 def novelty_at_k(
@@ -307,22 +313,22 @@ def eval_top_k(
 
     print(
         "[RELEVANCE]",
-        f"HR@{k}:\t\t{hr_:f}",
-        f"PRECISION@{k}:\t{precision_:f}",
-        f"RECALL@{k}:\t{recall_:f}", 
-        f"MAP@{k}:\t\t{map_:f}",
+        f"HR@{k}:\t\t\t{hr_:f}",
+        f"PRECISION@{k}:\t\t{precision_:f}",
+        f"RECALL@{k}:\t\t{recall_:f}", 
+        f"MAP@{k}:\t\t\t{map_:f}",
         f"NDCG@{k}:\t\t{ndcg_:f}",
         "\n",
         f"[RELEVANCE OF BOTTM {quantile * 100} % USER]",
-        f"HR@{k}:\t\t{q_hr_:f}",
-        f"PRECISION@{k}:\t{q_precision_:f}",
-        f"RECALL@{k}:\t{q_recall_:f}", 
-        f"MAP@{k}:\t\t{q_map_:f}",
+        f"HR@{k}:\t\t\t{q_hr_:f}",
+        f"PRECISION@{k}:\t\t{q_precision_:f}",
+        f"RECALL@{k}:\t\t{q_recall_:f}", 
+        f"MAP@{k}:\t\t\t{q_map_:f}",
         f"NDCG@{k}:\t\t{q_ndcg_:f}",
         "\n",
         f"[NOT RELEVENCE]",
         f"AGGDIV@{k}:\t\t{aggdiv_:f}",
-        f"ILD@{k}:\t\t{ild_:f}",
+        f"ILD@{k}:\t\t\t{ild_:f}",
         f"MEAN NOVELTY@{k}:\t{novelty_:f}",
         f"MEAN SERENDIPITY@{k}:\t{serendipity_:f}",
         f"PERSONALIZATION@{k}:\t{per_:f}", 
