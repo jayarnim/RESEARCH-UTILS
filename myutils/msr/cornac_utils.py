@@ -4,7 +4,7 @@
 import pandas as pd
 import numpy as np
 from tqdm import tqdm  # Progress Bar 생성을 위해 추가
-from config.constants import (
+from ..config.constants import (
     DEFAULT_USER_COL,
     DEFAULT_ITEM_COL,
     DEFAULT_PREDICTION_COL,

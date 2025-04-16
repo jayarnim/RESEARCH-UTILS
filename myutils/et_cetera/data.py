@@ -1,6 +1,6 @@
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder
-from config.constants import (
+from ..config.constants import (
     DEFAULT_USER_COL,
     DEFAULT_ITEM_COL,
 )
@@ -10,7 +10,7 @@ def description(
     data: pd.DataFrame, 
     col_user: str=DEFAULT_USER_COL, 
     col_item: str=DEFAULT_ITEM_COL
-    ):
+):
     N_USERS = data[col_user].nunique()
     N_ITEMS = data[col_item].nunique()
     TOTAL_INTERACTION = len(data)
@@ -30,17 +30,27 @@ def description(
 def filtering(
     data: pd.DataFrame, 
     col_user: str=DEFAULT_USER_COL, 
+    min_interaction: int=0,
+):
+    user_counts = data[col_user].value_counts()
+    valid_user = user_counts[user_counts >= min_interaction].index
+    return valid_user
+
+
+def label_encoding(
+    data: pd.DataFrame, 
+    col_user: str=DEFAULT_USER_COL, 
     col_item: str=DEFAULT_ITEM_COL,
-    n_user: int=0,
-    n_item: int=0,
-    ):
-    USER_COUNTS = data[col_user].value_counts()
-    VALID_USER = USER_COUNTS[USER_COUNTS >= n_user].index
+):
+    user_encoder = LabelEncoder()
+    data[col_user] = user_encoder.fit_transform(data[col_user])
+    user_label = dict(zip(user_encoder.classes_, user_encoder.transform(user_encoder.classes_)))
+    
+    item_encoder = LabelEncoder()
+    data[col_item] = item_encoder.fit_transform(data[col_item])
+    item_label = dict(zip(item_encoder.classes_, item_encoder.transform(item_encoder.classes_)))
 
-    ITEM_COUNTS = data[col_item].value_counts()
-    VALID_ITEM = ITEM_COUNTS[ITEM_COUNTS >= n_item].index
-
-    return VALID_USER, VALID_ITEM
+    return data, user_label, item_label
 
 
 def user_interaction_quantile(
@@ -54,23 +64,7 @@ def user_interaction_quantile(
     low_threshold = user_counts.quantile(low)
     high_threshold = user_counts.quantile(high)
 
-    user_low = user_counts[user_counts==low_threshold].index[0]
-    user_high = user_counts[user_counts==high_threshold].index[0]
+    low_user = user_counts[user_counts==low_threshold].index[0]
+    high_user = user_counts[user_counts==high_threshold].index[0]
 
-    return user_low, user_high
-
-
-def label_encoding(
-    data: pd.DataFrame, 
-    col_user: str=DEFAULT_USER_COL, 
-    col_item: str=DEFAULT_ITEM_COL
-    ):
-    user_encoder = LabelEncoder()
-    data[col_user] = user_encoder.fit_transform(data[col_user])
-    user_label = dict(zip(user_encoder.classes_, user_encoder.transform(user_encoder.classes_)))
-    
-    item_encoder = LabelEncoder()
-    data[col_item] = item_encoder.fit_transform(data[col_item])
-    item_label = dict(zip(item_encoder.classes_, item_encoder.transform(item_encoder.classes_)))
-
-    return data, user_label, item_label
+    return low_user, high_user

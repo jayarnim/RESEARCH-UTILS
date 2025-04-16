@@ -1,13 +1,15 @@
 import random
+import itertools
 import pandas as pd
 import torch
 from torch.utils.data import DataLoader, Dataset
-from config.constants import (
+from ..config.constants import (
     DEFAULT_USER_COL,
     DEFAULT_ITEM_COL,
 )
 
-class PairwiseDataset(Dataset):
+
+class NegativeSamplingDataset(Dataset):
     def __init__(
         self, 
         data: pd.DataFrame, 
@@ -15,7 +17,8 @@ class PairwiseDataset(Dataset):
         neg_per_pos: int=10,
         col_user: str=DEFAULT_USER_COL,
         col_item: str=DEFAULT_ITEM_COL,
-        ):
+    ):
+        # global attr
         self.user_item_pairs = list(zip(data[col_user], data[col_item]))
         self.neg_items_per_user = neg_items_per_user
         self.neg_per_pos = neg_per_pos
@@ -26,34 +29,36 @@ class PairwiseDataset(Dataset):
         return len(self.user_item_pairs)
 
     def __getitem__(self, idx):
-        return self._pairwise(idx)
-
-    def _pairwise(self, idx):
         user, pos = self.user_item_pairs[idx]
-        user_list = [user] * self.neg_per_pos
-        pos_list = [pos] * self.neg_per_pos
+        
+        # Negative Sampling
         neg_list = random.sample(
             population=self.neg_items_per_user[user],
             k=self.neg_per_pos
             )
 
-        return user_list, pos_list, neg_list
+        user_list = [user] * (1 + self.neg_per_pos)
+        item_list = [pos] + neg_list
+        label_list = [1] + [0] * self.neg_per_pos
+
+        return user_list, item_list, label_list
 
 
-class PairwiseDataLoader:
+class NegativeSamplingDataLoader:
     def __init__(
         self,
         origin: pd.DataFrame,
         col_user: str=DEFAULT_USER_COL,
         col_item: str=DEFAULT_ITEM_COL,
     ):
+        # global attr
         self.col_user = col_user
         self.col_item = col_item
         self.neg_items_per_user = self._generate_negative_sample_pool(
             data=origin, 
             col_user=col_user, 
             col_item=col_item,
-            )
+        )
 
     def get(
         self, 
@@ -61,19 +66,19 @@ class PairwiseDataLoader:
         neg_per_pos: int=10,
         batch_size: int=32,
     ):
-        dataset = PairwiseDataset(
+        dataset = NegativeSamplingDataset(
             data=data, 
             neg_items_per_user=self.neg_items_per_user,
             neg_per_pos=neg_per_pos,
             col_user=self.col_user, 
             col_item=self.col_item, 
-            )
+        )
         loader = DataLoader(
             dataset=dataset, 
             batch_size=batch_size, 
             shuffle=True,
             collate_fn=self._collate,
-            )
+        )
         return loader
 
     def _generate_negative_sample_pool(
@@ -85,7 +90,8 @@ class PairwiseDataLoader:
         all_users = sorted(data[col_user].unique())
         all_items = sorted(data[col_item].unique())
         pos_items_per_user = (
-            data.groupby(col_user)[col_item]
+            data
+            .groupby(col_user)[col_item]
             .apply(set)
             .to_dict()
         )
@@ -96,8 +102,17 @@ class PairwiseDataLoader:
         return neg_items_per_user
 
     def _collate(self, batch):
-        user_list, pos_list, neg_list = zip(*batch)  # unzip
-        user_batch = torch.cat([torch.tensor(u) for u in user_list], dim=0)
-        pos_batch = torch.cat([torch.tensor(p) for p in pos_list], dim=0)
-        neg_batch = torch.cat([torch.tensor(n) for n in neg_list], dim=0)
-        return user_batch, pos_batch, neg_batch
+        user_list, item_list, label_list = zip(*batch)
+        user_batch = torch.tensor(
+            list(itertools.chain.from_iterable(user_list)), 
+            dtype=torch.long
+        )
+        item_batch = torch.tensor(
+            list(itertools.chain.from_iterable(item_list)), 
+            dtype=torch.long
+        )
+        label_batch = torch.tensor(
+            list(itertools.chain.from_iterable(label_list)),
+            dtype=torch.float32
+        )
+        return user_batch, item_batch, label_batch

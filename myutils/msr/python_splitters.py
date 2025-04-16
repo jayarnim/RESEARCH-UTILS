@@ -3,12 +3,12 @@
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split as sk_split
-from config.constants import (
+from ..config.constants import (
     DEFAULT_ITEM_COL,
     DEFAULT_USER_COL,
     DEFAULT_TIMESTAMP_COL,
 )
-from msr.split_utils import (
+from .split_utils import (
     process_split_ratio,
     min_rating_filter_pandas,
     split_pandas_data_with_ratios,

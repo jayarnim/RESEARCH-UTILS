@@ -12,7 +12,7 @@ from sklearn.metrics import (
     roc_auc_score,
     log_loss,
 )
-from config.constants import (
+from ..config.constants import (
     DEFAULT_USER_COL,
     DEFAULT_ITEM_COL,
     DEFAULT_RATING_COL,
@@ -20,7 +20,7 @@ from config.constants import (
     DEFAULT_K,
     DEFAULT_THRESHOLD,
 )
-from msr.pandas_df_utils import (
+from .pandas_df_utils import (
     has_columns,
     has_same_base_dtype,
     lru_cache_df,

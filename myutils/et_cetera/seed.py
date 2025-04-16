@@ -1,7 +1,7 @@
 import random
 import numpy as np
 import torch
-from config.constants import SEED
+from ..config.constants import SEED
 
 
 def reset(seed: int=SEED):

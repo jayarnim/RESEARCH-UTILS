@@ -4,7 +4,11 @@
 import pandas as pd
 import numpy as np
 import math
-from config.constants import DEFAULT_ITEM_COL, DEFAULT_USER_COL
+from ..config.constants import (
+    DEFAULT_ITEM_COL, 
+    DEFAULT_USER_COL,
+)
+
 
 def process_split_ratio(ratio):
     """Generate split ratio lists.

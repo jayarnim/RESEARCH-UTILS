@@ -3,14 +3,14 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import pandas as pd
-from config.constants import (
+from ..config.constants import (
     DEFAULT_USER_COL,
     DEFAULT_ITEM_COL,
     DEFAULT_LABEL_COL,
     DEFAULT_PREDICTION_COL,
     DEFAULT_K,
 )
-from msr.python_evaluation import (
+from ..msr.python_evaluation import (
     hit_ratio_at_k,
     map_at_k, 
     ndcg_at_k, 
