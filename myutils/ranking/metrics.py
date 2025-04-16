@@ -1,7 +1,5 @@
 import numpy as np
-import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import pandas as pd
 from ..config.constants import (
     DEFAULT_USER_COL,
@@ -37,35 +35,6 @@ def rel_top_k(
     ndcg_ = ndcg_at_k(**kwargs)
 
     return hr_, precision_, recall_, map_, ndcg_
-
-
-def rel_top_k_quantile(
-    origin: pd.DataFrame,
-    rating_true: pd.DataFrame,
-    rating_pred: pd.DataFrame,
-    quantile: float=0.25,
-    col_user: str=DEFAULT_USER_COL,
-    col_item: str=DEFAULT_ITEM_COL,
-    col_rating: str=DEFAULT_LABEL_COL,
-    col_prediction: str=DEFAULT_PREDICTION_COL,
-    k: int=DEFAULT_K,
-    ):
-
-    kwargs = locals().copy()
-
-    user_interactions = origin[col_user].value_counts()
-    threshold = user_interactions.quantile(quantile)
-    low_activity_users = user_interactions[user_interactions <= threshold].index
-
-    low_activity_true = rating_true[rating_true[col_user].isin(low_activity_users)]
-    low_activity_pred = rating_pred[rating_pred[col_user].isin(low_activity_users)]
-
-    kwargs["rating_true"] = low_activity_true
-    kwargs["rating_pred"] = low_activity_pred
-    del kwargs["origin"]
-    del kwargs["quantile"]
-
-    return rel_top_k(**kwargs)
 
 
 def aggdiv_top_k(
@@ -226,11 +195,11 @@ def personalization_at_k(
 
 
 def eval_top_k(
+    model_name: str,
     origin: pd.DataFrame,
     rating_true: pd.DataFrame,
     rating_pred: pd.DataFrame,
     item_embed: nn.Embedding,
-    quantile: float=0.25,
     col_user: str=DEFAULT_USER_COL,
     col_item: str=DEFAULT_ITEM_COL,
     col_rating: str=DEFAULT_LABEL_COL,
@@ -254,18 +223,6 @@ def eval_top_k(
     hr_, precision_, recall_, map_, ndcg_ = rel_top_k(
         rating_true,
         rating_pred,
-        col_user,
-        col_item,
-        col_rating,
-        col_prediction,
-        k,
-    )
-
-    q_hr_, q_precision_, q_recall_, q_map_, q_ndcg_ = rel_top_k_quantile(
-        origin,
-        rating_true,
-        rating_pred,
-        quantile,
         col_user,
         col_item,
         col_rating,
@@ -310,27 +267,27 @@ def eval_top_k(
         k,
     )
 
+    result = dict(
+        model=model_name,
+        hit_ratio=hr_, 
+        precision=precision_, 
+        recall=recall_, 
+        map=map_, 
+        ndcg=ndcg_,
+    )
 
     print(
-        "[RELEVANCE]",
-        f"HR@{k}:\t\t\t{hr_:f}",
-        f"PRECISION@{k}:\t\t{precision_:f}",
-        f"RECALL@{k}:\t\t{recall_:f}", 
-        f"MAP@{k}:\t\t\t{map_:f}",
-        f"NDCG@{k}:\t\t{ndcg_:f}",
-        "\n",
-        f"[RELEVANCE OF BOTTM {quantile * 100} % USER]",
-        f"HR@{k}:\t\t\t{q_hr_:f}",
-        f"PRECISION@{k}:\t\t{q_precision_:f}",
-        f"RECALL@{k}:\t\t{q_recall_:f}", 
-        f"MAP@{k}:\t\t\t{q_map_:f}",
-        f"NDCG@{k}:\t\t{q_ndcg_:f}",
-        "\n",
-        f"[NOT RELEVENCE]",
-        f"AGGDIV@{k}:\t\t{aggdiv_:f}",
-        f"ILD@{k}:\t\t\t{ild_:f}",
-        f"MEAN NOVELTY@{k}:\t{novelty_:f}",
-        f"MEAN SERENDIPITY@{k}:\t{serendipity_:f}",
-        f"PERSONALIZATION@{k}:\t{per_:f}", 
+        f"HR@{k}: {hr_:f}",
+        f"PRECISION@{k}: {precision_:f}",
+        f"RECALL@{k}: {recall_:f}", 
+        f"MAP@{k}: {map_:f}",
+        f"NDCG@{k}: {ndcg_:f}",
+        f"AGGDIV@{k}: {aggdiv_:f}",
+        f"ILD@{k}: {ild_:f}",
+        f"MEAN NOVELTY@{k}: {novelty_:f}",
+        f"MEAN SERENDIPITY@{k}: {serendipity_:f}",
+        f"PERSONALIZATION@{k}: {per_:f}", 
         sep='\n'
     )
+
+    return result
