@@ -42,7 +42,7 @@ class Module:
             seed=seed,
         )
 
-        pos_per_user = self._histories(trn)
+        trn_pos_per_user = self._histories(trn)
 
         loaders = []
 
