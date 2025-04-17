@@ -48,47 +48,6 @@ def aggdiv_top_k(
     return aggdiv / norm
 
 
-def ild_top_k(
-    rating_pred: pd.DataFrame,
-    item_embed: nn.Embedding,
-    col_user: str=DEFAULT_USER_COL,
-    col_item: str=DEFAULT_ITEM_COL,
-):
-    embedding_matrix = item_embed.weight.detach().cpu().numpy()
-
-    rec_groups = rating_pred.groupby(col_user)[col_item].apply(list)
-
-    ild_scores = []
-
-    for user, items in rec_groups.items():
-        n = len(items)
-        if n < 2:
-            ild_scores.append(0.0)
-            continue
-
-        try:
-            vecs = embedding_matrix[items]
-        except IndexError:
-            ild_scores.append(0.0)
-            continue
-
-        norms = np.linalg.norm(vecs, axis=1, keepdims=True)
-        norms[norms == 0] = 1e-8  # 제로벡터 방지
-        vecs = vecs / norms
-        sim_matrix = np.dot(vecs, vecs.T)
-
-        # diversity = 1 - similarity
-        distance_matrix = 1 - sim_matrix
-        np.fill_diagonal(distance_matrix, 0.0)
-
-        diversity_sum = np.sum(distance_matrix)
-        num_pairs = n * (n - 1)
-        ild = diversity_sum / num_pairs
-        ild_scores.append(ild)
-
-    return float(np.mean(ild_scores)) if ild_scores else 0.0
-
-
 def novelty_at_k(
     origin: pd.DataFrame,
     rating_pred: pd.DataFrame,
@@ -199,7 +158,6 @@ def eval_top_k(
     origin: pd.DataFrame,
     rating_true: pd.DataFrame,
     rating_pred: pd.DataFrame,
-    item_embed: nn.Embedding,
     col_user: str=DEFAULT_USER_COL,
     col_item: str=DEFAULT_ITEM_COL,
     col_rating: str=DEFAULT_LABEL_COL,
@@ -237,13 +195,6 @@ def eval_top_k(
         k,
     )
 
-    ild_ = ild_top_k(
-        rating_pred,
-        item_embed,
-        col_user,
-        col_item,
-        )
-
     novelty_ = novelty_at_k(
         origin,
         rating_pred,
@@ -274,6 +225,10 @@ def eval_top_k(
         recall=recall_, 
         map=map_, 
         ndcg=ndcg_,
+        aggdiv=aggdiv_,
+        novelty=novelty_,
+        serendipity=serendipity_,
+        personalization=per_,
     )
 
     print(
@@ -283,7 +238,6 @@ def eval_top_k(
         f"MAP@{k}: {map_:f}",
         f"NDCG@{k}: {ndcg_:f}",
         f"AGGDIV@{k}: {aggdiv_:f}",
-        f"ILD@{k}: {ild_:f}",
         f"MEAN NOVELTY@{k}: {novelty_:f}",
         f"MEAN SERENDIPITY@{k}: {serendipity_:f}",
         f"PERSONALIZATION@{k}: {per_:f}", 
