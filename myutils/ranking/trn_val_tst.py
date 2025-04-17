@@ -17,7 +17,7 @@ class Module:
         n_items: int,
         col_user: str=DEFAULT_USER_COL, 
         col_item: str=DEFAULT_ITEM_COL,
-        ):
+    ):
         self.data = data
         self.n_users = n_users
         self.n_items = n_items
