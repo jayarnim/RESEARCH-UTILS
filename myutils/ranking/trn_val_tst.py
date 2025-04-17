@@ -33,7 +33,6 @@ class Module:
         batch_size: list = [128, 128, 32],
         seed: int = 42,
     ):
-        
         loo = (
             self.data
             .groupby(self.col_user)
@@ -41,7 +40,7 @@ class Module:
             .sort_values(by=self.col_user)
             .reset_index(drop=True)
         )
-
+        
         loo_loader = self.dataloader.get(
             data=loo,
             neg_per_pos=99,
@@ -49,8 +48,10 @@ class Module:
         )
 
         remain = (
-            self.data
-            .drop(loo.index)
+            self.data[~self.data[[self.col_user, self.col_item]]
+            .apply(tuple, axis=1)
+            .isin(set(loo[[self.col_user, self.col_item]]
+            .apply(tuple, axis=1)))]
             .reset_index(drop=True)
         )
 
@@ -78,20 +79,22 @@ class Module:
         return loaders, trn_pos_per_user
 
     def _histories(self, data):
-        pos_per_user_dict = (
-            data
-            .sort_values(
-                by=[DEFAULT_USER_COL, DEFAULT_ITEM_COL], 
-                ascending=[True, True]
-            )
-            .groupby(DEFAULT_USER_COL)[DEFAULT_ITEM_COL]
-            .apply(set)
-            .to_dict()
+        all_users = sorted(
+            data[DEFAULT_USER_COL]
+            .unique()
         )
+        
+        pos_per_user_dict = {
+            user: set(data[data[DEFAULT_USER_COL] == user][DEFAULT_ITEM_COL])
+            for user in all_users
+        }
 
         pos_per_user_tensor = [
-            torch.tensor(list(items), dtype=torch.long)
-            for user, items in sorted(pos_per_user_dict.items())
+            torch.tensor(
+                list(pos_per_user_dict.get(user, [])), 
+                dtype=torch.long
+            )
+            for user in all_users
         ]
 
         pos_per_user = pad_sequence(
