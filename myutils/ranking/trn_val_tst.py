@@ -1,7 +1,7 @@
 import pandas as pd
 import torch
 from torch.nn.utils.rnn import pad_sequence
-from config.constants import (
+from ..config.constants import (
     DEFAULT_USER_COL,
     DEFAULT_ITEM_COL,
 )
