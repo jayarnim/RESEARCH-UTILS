@@ -29,8 +29,8 @@ class Module:
         self, 
         filter_by: str = "user",
         trn_val_tst_ratio: list = [0.8, 0.1, 0.1],
-        neg_per_pos: list = [4, 4, 99],
-        batch_size: list = [128, 128, 32],
+        neg_per_pos: list = [4, 4, 99, 99],
+        batch_size: list = [128, 128, 32, 100],
         seed: int = 42,
     ):
         loo = (
@@ -39,12 +39,6 @@ class Module:
             .sample(n=1, random_state=seed)
             .sort_values(by=self.col_user)
             .reset_index(drop=True)
-        )
-        
-        loo_loader = self.dataloader.get(
-            data=loo,
-            neg_per_pos=99,
-            batch_size=100,
         )
 
         remain = (
@@ -68,13 +62,11 @@ class Module:
 
         loaders = []
 
-        zip_obj = zip([trn, val, tst], neg_per_pos, batch_size)
+        zip_obj = zip([trn, val, tst, loo], neg_per_pos, batch_size)
 
         for split_, ratio_, batch_ in zip_obj:
             loader = self.dataloader.get(split_, ratio_, batch_)
             loaders.append(loader)
-
-        loaders.append(loo_loader)
 
         return loaders, trn_pos_per_user
 
