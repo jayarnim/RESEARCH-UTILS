@@ -28,13 +28,34 @@ class Module:
     def get(
         self, 
         filter_by: str = "user",
-        trn_val_tst_ratio: list = [0.7, 0.1, 0.2],
-        neg_per_pos: list = [4, 1, 10],
-        batch_size: list = [32, 128, 32],
+        trn_val_tst_ratio: list = [0.8, 0.1, 0.1],
+        neg_per_pos: list = [4, 4, 99],
+        batch_size: list = [128, 128, 32],
         seed: int = 42,
     ):
+        
+        loo = (
+            self.data
+            .groupby(self.col_user)
+            .sample(n=1, random_state=seed)
+            .sort_values(by=self.col_user)
+            .reset_index(drop=True)
+        )
+
+        loo_loader = self.dataloader.get(
+            data=loo,
+            neg_per_pos=99,
+            batch_size=100,
+        )
+
+        remain = (
+            self.data
+            .drop(loo.index)
+            .reset_index(drop=True)
+        )
+
         trn, val, tst = python_stratified_split(
-            data=self.data,
+            data=remain,
             filter_by=filter_by,
             ratio=trn_val_tst_ratio,
             col_user=self.col_user,
@@ -52,7 +73,9 @@ class Module:
             loader = self.dataloader.get(split_, ratio_, batch_)
             loaders.append(loader)
 
-        return loaders, pos_per_user
+        loaders.append(loo_loader)
+
+        return loaders, trn_pos_per_user
 
     def _histories(self, data):
         pos_per_user_dict = (
@@ -60,11 +83,11 @@ class Module:
             .sort_values(
                 by=[DEFAULT_USER_COL, DEFAULT_ITEM_COL], 
                 ascending=[True, True]
-                )
+            )
             .groupby(DEFAULT_USER_COL)[DEFAULT_ITEM_COL]
             .apply(set)
             .to_dict()
-            )
+        )
 
         pos_per_user_tensor = [
             torch.tensor(list(items), dtype=torch.long)
