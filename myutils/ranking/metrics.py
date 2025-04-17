@@ -146,11 +146,12 @@ def personalization_at_k(
             total_overlap += overlap
             count += 1
 
-    avg_overlap = total_overlap / count
-
-    personalization = 1 - (avg_overlap / k)
-
-    return personalization
+    if count == 0:
+        return 0.0
+    else:
+        avg_overlap = total_overlap / count
+        personalization = 1 - (avg_overlap / k)
+        return personalization
 
 
 def eval_top_k(
