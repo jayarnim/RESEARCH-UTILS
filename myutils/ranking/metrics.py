@@ -14,7 +14,7 @@ from ..msr.python_evaluation import (
     ndcg_at_k, 
     precision_at_k, 
     recall_at_k
-    )
+)
 
 
 def rel_top_k(
@@ -25,7 +25,7 @@ def rel_top_k(
     col_rating: str=DEFAULT_LABEL_COL,
     col_prediction: str=DEFAULT_PREDICTION_COL,
     k: int=DEFAULT_K,
-    ):
+):
     kwargs = locals().copy()
 
     hr_ = hit_ratio_at_k(**kwargs)
@@ -42,7 +42,7 @@ def aggdiv_top_k(
     col_user: str=DEFAULT_USER_COL,
     col_item: str=DEFAULT_ITEM_COL,
     k: int=DEFAULT_K,
-    ):
+):
     aggdiv = rating_pred[col_item].nunique()
     norm = rating_pred[col_user].nunique() * k
     return aggdiv / norm
@@ -53,7 +53,7 @@ def ild_top_k(
     item_embed: nn.Embedding,
     col_user: str=DEFAULT_USER_COL,
     col_item: str=DEFAULT_ITEM_COL,
-    ):
+):
     embedding_matrix = item_embed.weight.detach().cpu().numpy()
 
     rec_groups = rating_pred.groupby(col_user)[col_item].apply(list)
@@ -94,7 +94,7 @@ def novelty_at_k(
     rating_pred: pd.DataFrame,
     col_user: str=DEFAULT_USER_COL,
     col_item: str=DEFAULT_ITEM_COL,
-    ):
+):
     # P(i)
     item_counts = origin[col_item].value_counts()
     total_interactions = len(origin)
@@ -122,7 +122,7 @@ def serendipity_top_k(
     col_user: str=DEFAULT_USER_COL,
     col_item: str=DEFAULT_ITEM_COL,
     k: int=DEFAULT_K,
-    ):
+):
     popular_items = (
         origin[col_item]
         .value_counts()
@@ -168,7 +168,7 @@ def personalization_at_k(
     col_user: str=DEFAULT_USER_COL,
     col_item: str=DEFAULT_ITEM_COL,
     k: int=DEFAULT_K,
-    ):
+):
     user_item_dict = rating_pred.groupby(col_user)[col_item].apply(set)
     users = user_item_dict.index
     n_users = len(users)
