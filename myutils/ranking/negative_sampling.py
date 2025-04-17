@@ -89,30 +89,35 @@ class NegativeSamplingDataLoader:
     ):
         all_users = sorted(data[col_user].unique())
         all_items = sorted(data[col_item].unique())
-        pos_items_per_user = (
-            data
-            .groupby(col_user)[col_item]
-            .apply(set)
-            .to_dict()
-        )
-        neg_items_per_user = {
-            user: list(set(all_items) - pos_items_per_user[user])
+        
+        pos_per_user_dict = {
+            user: set(data[data[DEFAULT_USER_COL] == user][DEFAULT_ITEM_COL])
             for user in all_users
         }
+
+        neg_items_per_user = {
+            user: list(set(all_items) - pos_per_user_dict[user])
+            for user in all_users
+        }
+
         return neg_items_per_user
 
     def _collate(self, batch):
         user_list, item_list, label_list = zip(*batch)
+        
         user_batch = torch.tensor(
             list(itertools.chain.from_iterable(user_list)), 
             dtype=torch.long
         )
+        
         item_batch = torch.tensor(
             list(itertools.chain.from_iterable(item_list)), 
             dtype=torch.long
         )
+        
         label_batch = torch.tensor(
             list(itertools.chain.from_iterable(label_list)),
             dtype=torch.float32
         )
+        
         return user_batch, item_batch, label_batch
