@@ -49,7 +49,7 @@ class Module:
             .reset_index(drop=True)
         )
 
-        trn, val, tst = python_stratified_split(
+        split_list = python_stratified_split(
             data=remain,
             filter_by=filter_by,
             ratio=trn_val_tst_ratio,
@@ -58,11 +58,13 @@ class Module:
             seed=seed,
         )
 
-        trn_pos_per_user = self._histories(trn)
+        split_list.append(loo)
+
+        trn_pos_per_user = self._histories(split_list[0])
 
         loaders = []
 
-        zip_obj = zip([trn, val, tst, loo], neg_per_pos, batch_size)
+        zip_obj = zip(split_list, neg_per_pos, batch_size)
 
         for split_, ratio_, batch_ in zip_obj:
             loader = self.dataloader.get(split_, ratio_, batch_)
