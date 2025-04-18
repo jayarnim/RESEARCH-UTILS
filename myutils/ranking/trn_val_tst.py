@@ -91,10 +91,10 @@ class Module:
             for user in all_users
         ]
 
-        pos_per_user = pad_sequence(
+        pos_per_user_padding = pad_sequence(
             pos_per_user_tensor, 
             batch_first=True, 
             padding_value=self.n_items,
         )
 
-        return pos_per_user
+        return pos_per_user_padding
