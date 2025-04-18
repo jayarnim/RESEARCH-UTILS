@@ -6,7 +6,7 @@ from ..config.constants import (
     DEFAULT_ITEM_COL,
 )
 from ..msr.python_splitters import python_stratified_split
-from . import negative_sampling_dataloader
+from .negative_sampling_dataloader import NegativeSamplingDataLoader
 
 
 class Module:
@@ -23,7 +23,7 @@ class Module:
         self.n_items = n_items
         self.col_user = col_user
         self.col_item = col_item
-        self.dataloader = negative_sampling_dataloader.NegativeSamplingDataLoader(data, col_user, col_item)
+        self.dataloader = NegativeSamplingDataLoader(data, col_user, col_item)
 
     def get(
         self, 
