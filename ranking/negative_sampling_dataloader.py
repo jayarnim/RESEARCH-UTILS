@@ -90,13 +90,13 @@ class NegativeSamplingDataLoader:
         all_users = sorted(data[col_user].unique())
         all_items = sorted(data[col_item].unique())
         
-        pos_per_user_dict = {
+        pos_per_user = {
             user: set(data[data[DEFAULT_USER_COL] == user][DEFAULT_ITEM_COL])
             for user in all_users
         }
 
         neg_items_per_user = {
-            user: list(set(all_items) - pos_per_user_dict[user])
+            user: list(set(all_items) - pos_per_user[user])
             for user in all_users
         }
 

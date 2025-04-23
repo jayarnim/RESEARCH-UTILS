@@ -174,7 +174,7 @@ def eval_top_k(
     rating_pred = (
         rating_pred
         .drop_duplicates(subset=[col_user, col_item])
-        .sort_values(by=[col_user, col_prediction], ascending=[True, False])
+        .sort_values(by=[col_user, col_prediction], ascending=[True, False], kind='stable')
         .groupby(col_user)
         .head(k)
         )
