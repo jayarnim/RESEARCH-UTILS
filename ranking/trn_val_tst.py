@@ -29,8 +29,8 @@ class Module:
         self, 
         filter_by: str = "user",
         trn_val_tst_ratio: list = [0.8, 0.1, 0.1],
-        neg_per_pos: list = [4, 4, 99, 99],
-        batch_size: list = [128, 128, 32, 100],
+        neg_per_pos: list = [4, 4, 100, 100],
+        batch_size: list = [32, 32, 1, 1],
         seed: int = 42,
     ):
         loo = (
@@ -60,17 +60,15 @@ class Module:
 
         split_list.append(loo)
 
-        trn_pos_per_user = self._histories(split_list[0])
-
         loaders = []
-
         zip_obj = zip(split_list, neg_per_pos, batch_size)
-
-        for split_, ratio_, batch_ in zip_obj:
-            loader = self.dataloader.get(split_, ratio_, batch_)
+        for split_, neg_, batch_ in zip_obj:
+            loader = self.dataloader.get(split_, neg_, batch_)
             loaders.append(loader)
 
-        return loaders, trn_pos_per_user
+        histories = self._histories(split_list[0])
+
+        return loaders, histories
 
     def _histories(self, data):
         all_users = sorted(
