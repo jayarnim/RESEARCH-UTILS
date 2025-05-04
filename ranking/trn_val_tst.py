@@ -1,12 +1,13 @@
 import pandas as pd
 import torch
 from torch.nn.utils.rnn import pad_sequence
+from sklearn.feature_extraction.text import TfidfTransformer
 from ..config.constants import (
     DEFAULT_USER_COL,
     DEFAULT_ITEM_COL,
 )
 from ..msr.python_splitters import python_stratified_split
-from .negative_sampling_dataloader import NegativeSamplingDataLoader
+from .curriculum_dataloader import CurriculumDataLoader as dataloader
 
 
 class Module:
@@ -23,7 +24,7 @@ class Module:
         self.n_items = n_items
         self.col_user = col_user
         self.col_item = col_item
-        self.dataloader = NegativeSamplingDataLoader(data, col_user, col_item)
+        self.dataloader = dataloader(data, col_user, col_item)
 
     def get(
         self, 
@@ -31,6 +32,8 @@ class Module:
         trn_val_tst_ratio: list = [0.8, 0.1, 0.1],
         neg_per_pos: list = [4, 4, 100, 100],
         batch_size: list = [32, 32, 1, 1],
+        num_phases: int = 4,
+        max_hist: int = 100,
         seed: int = 42,
     ):
         loo = (
@@ -63,36 +66,78 @@ class Module:
         loaders = []
         zip_obj = zip(split_list, neg_per_pos, batch_size)
         for split_, neg_, batch_ in zip_obj:
-            loader = self.dataloader.get(split_, neg_, batch_)
+            loader = self.dataloader.get(
+                data=split_, 
+                neg_per_pos=neg_, 
+                batch_size=batch_, 
+                num_phases=num_phases,
+            )
             loaders.append(loader)
 
-        histories = self._histories(split_list[0])
+        histories = self._histories(
+            data=split_list[0],
+            max_hist=max_hist,
+        )
 
         return loaders, histories
 
-    def _histories(self, data):
-        all_users = sorted(
-            data[DEFAULT_USER_COL]
-            .unique()
-        )
-        
-        pos_per_user_dict = {
-            user: set(data[data[DEFAULT_USER_COL] == user][DEFAULT_ITEM_COL])
-            for user in all_users
-        }
+    def _histories(
+        self, 
+        data: pd.DataFrame, 
+        max_hist: int,
+    ):
+        all_users = sorted(data[self.col_user].unique())
+        tfidf = self._tfidf(data)
 
-        pos_per_user_tensor = [
-            torch.tensor(
-                list(pos_per_user_dict.get(user, [])), 
-                dtype=torch.long
+        pos_per_user_ids = []
+
+        for user in all_users:
+            items = data[data[self.col_user] == user][self.col_item].unique()
+            scores = torch.tensor(
+                [tfidf.get((user, item), 0.0) for item in items],
+                dtype=torch.float32
             )
-            for user in all_users
-        ]
+            item_ids = torch.tensor(items, dtype=torch.long)
+
+            if len(items) > max_hist:
+                topk_vals, topk_indices = torch.topk(scores, k=max_hist)
+                item_ids = item_ids[topk_indices]
+
+            pos_per_user_ids.append(item_ids)
 
         pos_per_user_padding = pad_sequence(
-            pos_per_user_tensor, 
-            batch_first=True, 
-            padding_value=self.n_items,
+            pos_per_user_ids,
+            batch_first=True,
+            padding_value=self.n_items
         )
 
         return pos_per_user_padding
+
+    def _tfidf(
+        self, 
+        data: pd.DataFrame,
+    ):
+        user_item_matrix = (
+            data.groupby([self.col_user, self.col_item])
+            .size()
+            .unstack(fill_value=0)
+            .astype(float)
+        )
+
+        tfidf = TfidfTransformer(norm=None)
+        tfidf_matrix = tfidf.fit_transform(user_item_matrix)
+
+        tfidf_df = pd.DataFrame(
+            tfidf_matrix.toarray(),
+            index=user_item_matrix.index,
+            columns=user_item_matrix.columns,
+        )
+
+        tfidf_dict = {
+            (user, item): tfidf_df.loc[user, item]
+            for user in tfidf_df.index
+            for item in tfidf_df.columns
+            if tfidf_df.loc[user, item] > 0
+        }
+
+        return tfidf_dict
