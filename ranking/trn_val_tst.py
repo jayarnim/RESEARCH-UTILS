@@ -29,12 +29,12 @@ class Module:
     def get(
         self, 
         filter_by: str = "user",
-        trn_val_tst_ratio: list = [0.8, 0.1, 0.1],
-        neg_per_pos: list = [4, 4, 100, 100],
-        batch_size: list = [32, 32, 1, 1],
-        num_phases: int = 4,
-        max_hist: int = 100,
-        seed: int = 42,
+        trn_val_tst_ratio: list=[0.8, 0.1, 0.1],
+        neg_per_pos: list=[4, 4, 100, 100],
+        batch_size: list=[32, 32, 1, 1],
+        n_phases: int=4,
+        max_hist: int=100,
+        seed: int=42,
     ):
         loo = (
             self.data
@@ -70,7 +70,7 @@ class Module:
                 data=split_, 
                 neg_per_pos=neg_, 
                 batch_size=batch_, 
-                num_phases=num_phases,
+                n_phases=n_phases,
             )
             loaders.append(loader)
 

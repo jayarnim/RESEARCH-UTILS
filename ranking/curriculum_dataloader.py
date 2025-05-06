@@ -35,10 +35,10 @@ class CurriculumDataLoader:
         data: pd.DataFrame,
         neg_per_pos: int=10,
         batch_size: int=32,
-        num_phases: int=4,
+        n_phases: int=4,
     ):
 
-        phase_user_list = self._split_users_by_histlen(num_phases)
+        phase_user_list = self._split_users_by_histlen(n_phases)
 
         phase_data_list = [
             self._filter_by_user(data, phase_user)
@@ -57,7 +57,7 @@ class CurriculumDataLoader:
 
     def _split_users_by_histlen(
         self,
-        num_phases: int=4,
+        n_phases: int=4,
     ):
         user2histlen = (
             self.origin
@@ -75,9 +75,9 @@ class CurriculumDataLoader:
 
         phase_user_list = []
 
-        for i in range(num_phases):
-            start = (i * n_total) // num_phases
-            end = ((i + 1) * n_total) // num_phases
+        for i in range(n_phases):
+            start = (i * n_total) // n_phases
+            end = ((i + 1) * n_total) // n_phases
             phase_user = set(sorted_users[start:end])
             phase_user_list.append(phase_user)
 
