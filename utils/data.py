@@ -3,8 +3,38 @@ from sklearn.preprocessing import LabelEncoder
 from ..config.constants import (
     DEFAULT_USER_COL,
     DEFAULT_ITEM_COL,
+    DEFAULT_RATING_COL,
+    DEFAULT_TIMESTAMP_COL,
 )
 
+
+def rename_columns(
+    data: pd.DataFrame,
+    col_user: str,
+    col_item: str,
+    col_rating: str,
+    col_timestamp: str,
+):
+    COL_LIST = [
+        col_user, 
+        col_item, 
+        col_rating, 
+        col_timestamp,
+    ]
+
+    RE_COL_LIST = [
+        DEFAULT_USER_COL,
+        DEFAULT_ITEM_COL,
+        DEFAULT_RATING_COL,
+        DEFAULT_TIMESTAMP_COL,
+    ]
+
+    RENAMES = dict(zip(COL_LIST, RE_COL_LIST))
+    
+    data = data[COL_LIST]
+    data = data.rename(columns=RENAMES)
+
+    return data
 
 def description(
     data: pd.DataFrame, 
