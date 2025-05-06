@@ -3,5 +3,5 @@ from . import (
     msr,
     loss,
     ranking,
-    et_cetera,
+    utils,
 )
