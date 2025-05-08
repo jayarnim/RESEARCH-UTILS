@@ -13,17 +13,26 @@ class Module:
         self.lower_bound = lower_bound
 
     def compute(self, **kwargs):
-        if self.approx_type=='lognormal':
-            kl = self._lognormal(**kwargs)
-        elif self.approx_type=='weibull':
-            kl = self._weibull(**kwargs)
-        else:
-            raise ValueError("Invalid Approx. Dist.")
+        kl = self._kl_naive(**kwargs)
 
         if self.lower_bound is not None:
             return kl, self._free_bits_trick(kl)
         else:
             return kl
+
+    def _kl_naive(self, **kwargs):
+        if self.approx_type=='lognormal':
+            return self._lognormal(**kwargs)
+        elif self.approx_type=='weibull':
+            return self._weibull(**kwargs)
+        else:
+            raise ValueError("Invalid Approx. Dist.")
+
+    def _free_bits_trick(self, kl):
+        return torch.max(
+            kl, 
+            torch.tensor(self.lower_bound)
+        )
 
     def _lognormal(
         self, 
@@ -64,12 +73,6 @@ class Module:
         )
         return self._kl_mean(kl, padding)
 
-    def _free_bits_trick(self, kl):
-        return torch.max(
-            kl, 
-            torch.tensor(self.lower_bound)
-        )
-
     def _kl_mean(self, kl, padding):
         # mean over non-padding positions
         if padding is not None:
@@ -78,6 +81,7 @@ class Module:
             kl = kl.masked_fill(padding, 0.0)
             kl_sum = kl.sum()
             return kl_sum / (num_valid + 1e-8)
+        
         # mean over all positions
         else:
             return kl.mean()
