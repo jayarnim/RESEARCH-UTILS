@@ -1,3 +1,4 @@
+from typing import Optional
 import pandas as pd
 import torch
 from torch.nn.utils.rnn import pad_sequence
@@ -33,7 +34,7 @@ class Module:
         neg_per_pos: list=[4, 4, 100, 100],
         batch_size: list=[32, 32, 1, 1],
         n_phases: int=4,
-        max_hist: int=100,
+        max_hist: Optional[int]=None,
         seed: int=42,
     ):
         loo = (
@@ -84,22 +85,23 @@ class Module:
     def _histories(
         self, 
         data: pd.DataFrame, 
-        max_hist: int,
+        max_hist: Optional[int]=None,
     ):
-        all_users = sorted(data[self.col_user].unique())
-        tfidf = self._tfidf(data)
+        tfidf = self._tfidf(data) if max_hist is not None else None
 
+        all_users = sorted(data[self.col_user].unique())
         pos_per_user_ids = []
 
         for user in all_users:
             items = data[data[self.col_user] == user][self.col_item].unique()
-            scores = torch.tensor(
-                [tfidf.get((user, item), 0.0) for item in items],
-                dtype=torch.float32
-            )
             item_ids = torch.tensor(items, dtype=torch.long)
 
-            if len(items) > max_hist:
+            # TF-IDF 기반 정렬 및 top-k 선택
+            if max_hist is not None and len(items) > max_hist:
+                scores = torch.tensor(
+                    [tfidf.get((user, item), 0.0) for item in items],
+                    dtype=torch.float32
+                )
                 topk_vals, topk_indices = torch.topk(scores, k=max_hist)
                 item_ids = item_ids[topk_indices]
 
