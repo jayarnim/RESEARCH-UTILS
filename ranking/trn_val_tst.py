@@ -96,7 +96,6 @@ class Module:
             items = data[data[self.col_user] == user][self.col_item].unique()
             item_ids = torch.tensor(items, dtype=torch.long)
 
-            # TF-IDF 기반 정렬 및 top-k 선택
             if max_hist is not None and len(items) > max_hist:
                 scores = torch.tensor(
                     [tfidf.get((user, item), 0.0) for item in items],
