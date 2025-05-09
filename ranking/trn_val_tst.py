@@ -33,10 +33,12 @@ class Module:
         trn_val_tst_ratio: list=[0.8, 0.1, 0.1],
         neg_per_pos: list=[4, 4, 100, 100],
         batch_size: list=[32, 32, 1, 1],
-        n_phases: int=4,
+        n_phases: Optional[int]=None,
         max_hist: Optional[int]=None,
         seed: int=42,
     ):
+        n_phases = n_phases if n_phases is not None else 1
+
         loo = (
             self.data
             .groupby(self.col_user)
