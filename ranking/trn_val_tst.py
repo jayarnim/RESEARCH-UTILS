@@ -87,31 +87,34 @@ class Module:
     def _histories(
         self, 
         data: pd.DataFrame, 
-        max_hist: Optional[int]=None,
+        max_hist: Optional[int]=None
     ):
         tfidf = self._tfidf(data) if max_hist is not None else None
 
-        all_users = sorted(data[self.col_user].unique())
         pos_per_user_ids = []
 
-        for user in all_users:
+        for user in range(self.n_users):
             items = data[data[self.col_user] == user][self.col_item].unique()
-            item_ids = torch.tensor(items, dtype=torch.long)
 
-            if max_hist is not None and len(items) > max_hist:
-                scores = torch.tensor(
-                    [tfidf.get((user, item), 0.0) for item in items],
-                    dtype=torch.float32
-                )
-                topk_vals, topk_indices = torch.topk(scores, k=max_hist)
-                item_ids = item_ids[topk_indices]
+            if len(items) == 0:
+                item_ids = torch.tensor([self.n_items], dtype=torch.long)
+            else:
+                item_ids = torch.tensor(items, dtype=torch.long)
+
+                if max_hist is not None and len(items) > max_hist:
+                    scores = torch.tensor(
+                        [tfidf.get((user, item), 0.0) for item in items],
+                        dtype=torch.float32
+                    )
+                    topk_vals, topk_indices = torch.topk(scores, k=max_hist)
+                    item_ids = item_ids[topk_indices]
 
             pos_per_user_ids.append(item_ids)
 
         pos_per_user_padding = pad_sequence(
             pos_per_user_ids,
             batch_first=True,
-            padding_value=self.n_items
+            padding_value=self.n_items,
         )
 
         return pos_per_user_padding
