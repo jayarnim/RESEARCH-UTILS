@@ -66,7 +66,7 @@ def description(
 def valid_users(
     data: pd.DataFrame, 
     col_user: str=DEFAULT_USER_COL, 
-    min_interaction: int=3,
+    min_interaction: int=5,
 ):
     user_counts = data[col_user].value_counts()
     valid_users = user_counts[user_counts >= min_interaction].index
