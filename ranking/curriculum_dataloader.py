@@ -77,9 +77,9 @@ class CurriculumDataLoader:
 
         phase_user_list = []
 
-        for i in range(n_phases):
-            start = (i * n_total) // n_phases
-            end = ((i + 1) * n_total) // n_phases
+        for i in range(self.n_phases):
+            start = (i * n_total) // self.n_phases
+            end = ((i + 1) * n_total) // self.n_phases
             phase_user = set(sorted_users[start:end])
             phase_user_list.append(phase_user)
 
