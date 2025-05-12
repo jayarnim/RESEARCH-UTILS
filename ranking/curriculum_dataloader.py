@@ -50,6 +50,7 @@ class CurriculumDataLoader:
         phase_loader_list = [
             self.dataloader.get(phase_data, neg_per_pos, batch_size)
             for phase_data in phase_data_list
+            if not phase_data.empty
         ]
 
         combined_iter = DataLoaderCombination(phase_loader_list)
