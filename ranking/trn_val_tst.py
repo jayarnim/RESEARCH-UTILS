@@ -8,7 +8,8 @@ from ..config.constants import (
     DEFAULT_ITEM_COL,
 )
 from ..msr.python_splitters import python_stratified_split
-from .curriculum_dataloader import CurriculumDataLoader as dataloader
+from .negative_sampling_dataloader import NegativeSamplingDataLoader
+from .curriculum_dataloader import CurriculumDataLoader
 
 
 class Module:
@@ -19,13 +20,20 @@ class Module:
         n_items: int,
         col_user: str=DEFAULT_USER_COL, 
         col_item: str=DEFAULT_ITEM_COL,
+        curriculum: bool=False,
+        n_phases: Optional[int]=None,
     ):
         self.data = data
         self.n_users = n_users
         self.n_items = n_items
         self.col_user = col_user
         self.col_item = col_item
-        self.dataloader = dataloader(data, col_user, col_item)
+        self.curriculum = curriculum
+
+        if curriculum is True:
+            self.dataloader = CurriculumDataLoader(data, col_user, col_item, n_phases)
+        else:
+            self.dataloader = NegativeSamplingDataLoader(data, col_user, col_item)
 
     def get(
         self, 
@@ -33,7 +41,6 @@ class Module:
         trn_val_tst_ratio: list=[0.8, 0.1, 0.1],
         neg_per_pos: list=[4, 4, 100, 100],
         batch_size: list=[32, 32, 1, 1],
-        n_phases: Optional[int]=None,
         max_hist: Optional[int]=None,
         seed: int=42,
     ):
@@ -73,7 +80,6 @@ class Module:
                 data=split_, 
                 neg_per_pos=neg_, 
                 batch_size=batch_, 
-                n_phases=n_phases,
             )
             loaders.append(loader)
 
@@ -87,7 +93,7 @@ class Module:
     def _histories(
         self, 
         data: pd.DataFrame, 
-        max_hist: Optional[int]=None
+        max_hist: Optional[int]=None,
     ):
         tfidf = self._tfidf(data) if max_hist is not None else None
 
