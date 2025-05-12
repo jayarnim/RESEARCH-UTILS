@@ -29,6 +29,7 @@ class Module:
         self.col_user = col_user
         self.col_item = col_item
         self.curriculum = curriculum
+        self.n_phases = n_phases if n_phases is not None else 1
 
         if curriculum is True:
             self.dataloader = CurriculumDataLoader(data, col_user, col_item, n_phases)
@@ -44,8 +45,6 @@ class Module:
         max_hist: Optional[int]=None,
         seed: int=42,
     ):
-        n_phases = n_phases if n_phases is not None else 1
-
         loo = (
             self.data
             .groupby(self.col_user)
