@@ -40,7 +40,7 @@ class CurriculumDataLoader:
         batch_size: int=32,
     ):
 
-        phase_user_list = self._split_users_by_histlen(self.n_phases)
+        phase_user_list = self._split_users_by_histlen()
 
         phase_data_list = [
             self._filter_by_user(data, phase_user)
@@ -57,10 +57,7 @@ class CurriculumDataLoader:
         return combined_iter
 
 
-    def _split_users_by_histlen(
-        self,
-        n_phases: int=4,
-    ):
+    def _split_users_by_histlen(self):
         user2histlen = (
             self.origin
             .groupby(self.col_user)[self.col_item]
