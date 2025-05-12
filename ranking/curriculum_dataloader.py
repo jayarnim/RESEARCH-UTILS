@@ -1,3 +1,4 @@
+from typing import Optional
 from itertools import chain
 import pandas as pd
 from ..config.constants import (
@@ -24,10 +25,12 @@ class CurriculumDataLoader:
         origin: pd.DataFrame,
         col_user: str=DEFAULT_USER_COL,
         col_item: str=DEFAULT_ITEM_COL,
+        n_phases: Optional[int]=None,
     ):
         self.origin = origin
         self.col_user = col_user
         self.col_item = col_item
+        self.n_phases = n_phases
         self.dataloader = dataloader(origin, col_user, col_item)
 
     def get(
@@ -35,10 +38,9 @@ class CurriculumDataLoader:
         data: pd.DataFrame,
         neg_per_pos: int=10,
         batch_size: int=32,
-        n_phases: int=4,
     ):
 
-        phase_user_list = self._split_users_by_histlen(n_phases)
+        phase_user_list = self._split_users_by_histlen(self.n_phases)
 
         phase_data_list = [
             self._filter_by_user(data, phase_user)
