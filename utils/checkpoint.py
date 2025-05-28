@@ -9,6 +9,7 @@ def save(model, path):
         "model_state_dict": model.state_dict(),
         "model_args": model.init_args
     }
+
     torch.save(checkpoint, path)
 
 
